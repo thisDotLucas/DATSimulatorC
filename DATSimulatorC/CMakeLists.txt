@@ -2,7 +2,7 @@
 # project specific logic here.
 #
 
-set(SystemCLanguage_DIR C:/vcpkg/packages/systemc_x64-windows/share/systemclanguage)
+set(SystemCLanguage_DIR $ENV{VCPKG_ROOT}/packages/systemc_$ENV{VCPKG_DEFAULT_TRIPLET}/share/systemclanguage)
 find_package(SystemCLanguage CONFIG REQUIRED)
 
 set (CMAKE_CXX_STANDARD ${SystemC_CXX_STANDARD})
