@@ -3,7 +3,7 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-project ("DATSimulatorC")
+project(DATSimulatorC)
 
 # Include sub-projects.
-add_subdirectory ("DATSimulatorC")
+add_subdirectory(DATSimulatorC)

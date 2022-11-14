@@ -6,10 +6,10 @@
 
 void hello1()
 {
-    std::cout << "Hello world using approach 1" << std::endl;
+    std::cout << "Hello world using approach 3" << std::endl;
 }
 
-struct HelloWorld : sc_core::sc_module
+struct HelloWorld : sc_module
 {
     SC_CTOR(HelloWorld)
     {
