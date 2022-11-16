@@ -23,7 +23,7 @@ namespace
     {
     #ifdef IS_DEBUG
         // You can set the path to a JSON file here to not be prompted while debugging.
-        std::optional<std::string> debugPath = "C:/Users/lucas/Downloads/new.json";
+        std::optional<std::string> debugPath = std::nullopt;
         if (debugPath.has_value())
             return isValidPath(debugPath.value());
     #endif
