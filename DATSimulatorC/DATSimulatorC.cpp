@@ -3,6 +3,8 @@
 #include <systemc.h>
 #include <chrono>
 #include <thread>
+#include <iomanip>
+#include <sstream>
 
 constexpr double DEFAULT_STEP_SIMULATION_TIME = 60 * 10;
 constexpr double DEFAULT_STEP_SIZE = 100;
@@ -23,6 +25,14 @@ namespace
         std::getline(std::cin, path);
 
         return std::ifstream(path) ? std::make_optional(path) : std::nullopt;
+    }
+
+    template <typename T>
+    std::string logValue(const sc_time& timeInSimulation, const std::string& attribute, const T value)
+    {
+        std::stringstream ss{};
+        ss << std::setprecision(2) << std::fixed << "@ " << timeInSimulation.to_seconds() << "s - " << attribute + ": " << value;
+        return ss.str();
     }
 }
 
@@ -45,7 +55,7 @@ public:
     {
         while (true)
         {
-            std::cout << "@ " << sc_time_stamp().to_seconds() << "s - Angle: " << m_angleInPort->read() << "\n";
+            std::cout << logValue<double>(sc_time_stamp(), "Angle", m_angleInPort->read()) << "\n";
             wait();
         }
     }
@@ -54,7 +64,7 @@ public:
     {
         while (true)
         {
-            std::cout << "@ " << sc_time_stamp().to_seconds() << "s - Torque: " << m_torqueInPort->read() << "\n";
+            std::cout << logValue<double>(sc_time_stamp(), "Torque", m_torqueInPort->read()) << "\n";
             wait();
         }
     }
