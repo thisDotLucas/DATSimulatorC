@@ -1,12 +1,35 @@
 ﻿#include "DATSimulatorC.h"
+#include "JsonConfig.h"
 #include <systemc.h>
 #include <chrono>
 #include <thread>
 
+constexpr double DEFAULT_STEP_SIMULATION_TIME = 60 * 10;
+constexpr double DEFAULT_STEP_SIZE = 100;
+
+namespace
+{
+    std::optional<std::string> getPath()
+    {
+    #ifdef IS_DEBUG
+        // You can set the path to a JSON file here to not be prompted while debugging.
+        std::optional<std::string> debugPath = std::nullopt;
+        if (debugPath.has_value())
+            return debugPath;
+    #endif
+
+        std::string path;
+        std::cout << "Path for config file: ";
+        std::getline(std::cin, path);
+
+        return std::ifstream(path) ? std::make_optional(path) : std::nullopt;
+    }
+}
+
 class MotorController : sc_module
 {
 public:
-    SC_CTOR(MotorController)
+    MotorController(sc_module_name name, const json::JSONConfig& config) : sc_module(name), m_config(config)
     {
         SC_THREAD(readMotorAnglePort);
         sensitive << m_angleInPort;
@@ -22,8 +45,8 @@ public:
     {
         while (true)
         {
-            wait();
             std::cout << "@ " << sc_time_stamp().to_seconds() << "s - Angle: " << m_angleInPort->read() << "\n";
+            wait();
         }
     }
 
@@ -31,8 +54,8 @@ public:
     {
         while (true)
         {
-            wait();
             std::cout << "@ " << sc_time_stamp().to_seconds() << "s - Torque: " << m_torqueInPort->read() << "\n";
+            wait();
         }
     }
 
@@ -40,10 +63,8 @@ public:
     {
         while (true)
         {
-            m_angleOutPort->write((((double)rand() / (double)RAND_MAX)) * 180);
-
-            wait(100, SC_MS);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            m_angleOutPort->write(m_config.getAngleAt(sc_time_stamp().to_seconds()).value_or(0.0));
+            wait(m_config.getStepSize().value_or(DEFAULT_STEP_SIZE), SC_MS);
         }
     }
 
@@ -51,10 +72,8 @@ public:
     {
         while (true)
         {
-            m_toqueOutPort->write((((double)rand() / (double)RAND_MAX)) * 180);
-
-            wait(100, SC_MS);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            m_torqueOutPort->write(m_config.getTourqueAt(sc_time_stamp().to_seconds()).value_or(0.0));
+            wait(m_config.getStepSize().value_or(DEFAULT_STEP_SIZE), SC_MS);
         }
     }
 
@@ -62,22 +81,28 @@ public:
     sc_port<sc_signal_in_if<double>> m_torqueInPort;
 
     sc_port<sc_signal_out_if<double>> m_angleOutPort;
-    sc_port<sc_signal_out_if<double>> m_toqueOutPort;
+    sc_port<sc_signal_out_if<double>> m_torqueOutPort;
+
+    json::JSONConfig m_config;
+
+    SC_HAS_PROCESS(MotorController);
 };
 
 class Motor : sc_module
 {
 public:
-    SC_CTOR(Motor)
+    Motor(sc_module_name name, const json::JSONConfig& config) : sc_module(name), m_config(config)
     {
         SC_THREAD(WriteToAngleOutPort);
         SC_THREAD(WriteToTorqueOutPort);
 
         SC_THREAD(readAnglePort);
         sensitive << m_angleInPort;
+        dont_initialize();
 
         SC_THREAD(readTorquePort);
         sensitive << m_torqueInPort;
+        dont_initialize();
     }
 
     void WriteToAngleOutPort(void)
@@ -85,9 +110,7 @@ public:
         while (true) 
         {
             m_angleOutPort->write(m_angle);
-
-            wait(100, SC_MS);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            wait(m_config.getStepSize().value_or(DEFAULT_STEP_SIZE), SC_MS);
         }
     }
 
@@ -95,10 +118,8 @@ public:
     {
         while (true)
         {
-            m_toqueOutPort->write(m_torque);
-
-            wait(100, SC_MS);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            m_torqueOutPort->write(m_torque);
+            wait(m_config.getStepSize().value_or(DEFAULT_STEP_SIZE), SC_MS);
         }
     }
 
@@ -106,8 +127,8 @@ public:
     {
         while (true)
         {
-            wait();
             m_angle = m_angleInPort->read();
+            wait();
         }
     }
 
@@ -115,8 +136,8 @@ public:
     {
         while (true)
         {
-            wait();
             m_torque = m_torqueInPort->read();
+            wait();
         }
     }
 
@@ -124,26 +145,26 @@ public:
     double m_torque{};
 
     sc_port<sc_signal_out_if<double>> m_angleOutPort;
-    sc_port<sc_signal_out_if<double>> m_toqueOutPort;
+    sc_port<sc_signal_out_if<double>> m_torqueOutPort;
 
     sc_port<sc_signal_in_if<double>> m_angleInPort;
     sc_port<sc_signal_in_if<double>> m_torqueInPort;
+
+    json::JSONConfig m_config;
+    
+    SC_HAS_PROCESS(Motor);
 };
 
 int sc_main(int, char* [])
 {
-    srand((unsigned)time(NULL));
+    auto path = getPath();
+    if (!path.has_value())
+        return 0;
 
-    MotorController motorController("MotorController");
-    Motor motor("Motor");
+    json::JSONConfig config(path.value());
 
-    sc_signal<double> angleSignalToMotor;
-    motorController.m_angleOutPort(angleSignalToMotor);
-    motor.m_angleInPort(angleSignalToMotor);
-
-    sc_signal<double> torqueSignalToMotor;
-    motorController.m_toqueOutPort(torqueSignalToMotor);
-    motor.m_torqueInPort(torqueSignalToMotor);
+    MotorController motorController("MotorController", config);
+    Motor motor("Motor", config);
 
     sc_signal<double> angleSignalToController;
     motorController.m_angleInPort(angleSignalToController);
@@ -151,9 +172,17 @@ int sc_main(int, char* [])
 
     sc_signal<double> torqueSignalToController;
     motorController.m_torqueInPort(torqueSignalToController);
-    motor.m_toqueOutPort(torqueSignalToController);
+    motor.m_torqueOutPort(torqueSignalToController);
 
-    sc_start(60 * 10, SC_SEC);
+    sc_signal<double> angleSignalToMotor;
+    motorController.m_angleOutPort(angleSignalToMotor);
+    motor.m_angleInPort(angleSignalToMotor);
+
+    sc_signal<double> torqueSignalToMotor;
+    motorController.m_torqueOutPort(torqueSignalToMotor);
+    motor.m_torqueInPort(torqueSignalToMotor);
+    
+    sc_start(config.getSimulationTime().value_or(DEFAULT_STEP_SIMULATION_TIME), SC_SEC);
 
     return 0;
 }
