@@ -1,30 +1,38 @@
 ﻿#include "DATSimulatorC.h"
 #include "JsonConfig.h"
-#include <systemc.h>
+#include <systemc>
 #include <chrono>
 #include <thread>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 
 constexpr double DEFAULT_STEP_SIMULATION_TIME = 60 * 10;
 constexpr double DEFAULT_STEP_SIZE = 100;
 
+using namespace sc_core;
+
 namespace
 {
+    std::optional<std::string> isValidPath(const std::string& path)
+    {
+        return std::ifstream(path) ? std::make_optional(path) : std::nullopt;
+    }
+
     std::optional<std::string> getPath()
     {
     #ifdef IS_DEBUG
         // You can set the path to a JSON file here to not be prompted while debugging.
-        std::optional<std::string> debugPath = std::nullopt;
+        std::optional<std::string> debugPath = "C:/Users/lucas/Downloads/new.json";
         if (debugPath.has_value())
-            return debugPath;
+            return isValidPath(debugPath.value());
     #endif
 
         std::string path;
         std::cout << "Path for config file: ";
         std::getline(std::cin, path);
 
-        return std::ifstream(path) ? std::make_optional(path) : std::nullopt;
+        return isValidPath(path);
     }
 
     template <typename T>
@@ -36,7 +44,7 @@ namespace
     }
 }
 
-class MotorController : sc_module
+class MotorController : public sc_module
 {
 public:
     MotorController(sc_module_name name, const json::JSONConfig& config) : sc_module(name), m_config(config)
@@ -98,7 +106,7 @@ public:
     SC_HAS_PROCESS(MotorController);
 };
 
-class Motor : sc_module
+class Motor : public sc_module
 {
 public:
     Motor(sc_module_name name, const json::JSONConfig& config) : sc_module(name), m_config(config)

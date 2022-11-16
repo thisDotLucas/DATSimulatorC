@@ -14,8 +14,4 @@ add_executable(DATSimulatorC DATSimulatorC.cpp DATSimulatorC.h JsonConfig.cpp Js
 target_link_libraries(DATSimulatorC PRIVATE SystemC::systemc)
 target_link_libraries(DATSimulatorC PRIVATE nlohmann_json::nlohmann_json)
 
-#if (CMAKE_VERSION VERSION_GREATER 3.12)
-#  set_property(TARGET DATSimulatorC PROPERTY CXX_STANDARD 20)
-#endif()
-
 # TODO: Add tests and install targets if needed.
