@@ -1,12 +1,8 @@
 ﻿# CMakeList.txt : CMake project for DATSimulatorC, include source and define
 # project specific logic here.
 #
-
-set(SystemCLanguage_DIR $ENV{VCPKG_ROOT}/packages/systemc_$ENV{VCPKG_DEFAULT_TRIPLET}/share/systemclanguage)
-
 find_package(SystemCLanguage CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(GTest CONFIG REQUIRED)
 
 set (CMAKE_CXX_STANDARD ${SystemC_CXX_STANDARD})
 
