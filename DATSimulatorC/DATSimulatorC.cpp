@@ -47,13 +47,17 @@ namespace
 class MotorController : public sc_module
 {
 public:
+    SC_HAS_PROCESS(MotorController);
+
     MotorController(sc_module_name name, const json::JSONConfig& config) : sc_module(name), m_config(config)
     {
         SC_THREAD(readMotorAnglePort);
         sensitive << m_angleInPort;
+        dont_initialize();
 
         SC_THREAD(readMotorTorquePort);
         sensitive << m_torqueInPort;
+        dont_initialize();
 
         SC_THREAD(WriteToAngleOutPort);
         SC_THREAD(WriteToTorqueOutPort);
@@ -64,7 +68,7 @@ public:
         while (true)
         {
             std::cout << logValue<double>(sc_time_stamp(), "Angle", m_angleInPort->read()) << "\n";
-            wait();
+            m_logAllDiscreteSteps ? wait(m_config.getStepSize().value_or(DEFAULT_STEP_SIZE), SC_MS) : wait();
         }
     }
 
@@ -73,7 +77,7 @@ public:
         while (true)
         {
             std::cout << logValue<double>(sc_time_stamp(), "Torque", m_torqueInPort->read()) << "\n";
-            wait();
+            m_logAllDiscreteSteps ? wait(m_config.getStepSize().value_or(DEFAULT_STEP_SIZE), SC_MS) : wait();
         }
     }
 
@@ -95,6 +99,11 @@ public:
         }
     }
 
+    void logAllSteps(const bool showAll)
+    {
+        m_logAllDiscreteSteps = showAll;
+    }
+
     sc_port<sc_signal_in_if<double>> m_angleInPort;
     sc_port<sc_signal_in_if<double>> m_torqueInPort;
 
@@ -103,12 +112,14 @@ public:
 
     json::JSONConfig m_config;
 
-    SC_HAS_PROCESS(MotorController);
+    bool m_logAllDiscreteSteps{};
 };
 
 class Motor : public sc_module
 {
 public:
+    SC_HAS_PROCESS(Motor);
+
     Motor(sc_module_name name, const json::JSONConfig& config) : sc_module(name), m_config(config)
     {
         SC_THREAD(WriteToAngleOutPort);
@@ -169,8 +180,6 @@ public:
     sc_port<sc_signal_in_if<double>> m_torqueInPort;
 
     json::JSONConfig m_config;
-    
-    SC_HAS_PROCESS(Motor);
 };
 
 int sc_main(int, char* [])
@@ -182,6 +191,8 @@ int sc_main(int, char* [])
     json::JSONConfig config(path.value());
 
     MotorController motorController("MotorController", config);
+    motorController.logAllSteps(true);
+
     Motor motor("Motor", config);
 
     sc_signal<double> angleSignalToController;

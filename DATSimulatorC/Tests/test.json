@@ -1,0 +1,36 @@
+{
+	"SimulationTime": 200,
+	"StepSize": 100,
+    "Angles": [
+	    {
+            "Value": 90,
+			"Time": 0
+        },
+        {
+            "Value": 60,
+			"Time": 5
+        },
+        {
+            "Value": 30,
+			"Time": 10
+        },
+        {
+            "Value": 50,
+			"Time": 35
+        }
+    ],
+    "Torques": [
+	    {
+            "Value": 20,
+			"Time": 0
+        },
+        {
+            "Value": 40,
+			"Time": 5
+        },
+        {
+            "Value": 80,
+			"Time": 50
+        }
+    ]
+}
