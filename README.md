@@ -12,7 +12,7 @@ If you want to use some other generator than specified in the examples: https://
 Run the following command:<br />
 ```
 cmake -DCMAKE_TOOLCHAIN_FILE=\<Path to your vcpkg folder>\scripts\buildsystems\vcpkg.cmake 
--S \<Path to the root directory> -B \<Path to your build folder> -G "Visual Studio 17 2022"
+-S <Path to the root directory> -B <Path to your build folder> -G "Visual Studio 17 2022"
 ```
 Now in your specified build directory you can use msbuild to build the executables.<br />
 ```
